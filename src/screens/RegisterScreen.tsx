@@ -12,33 +12,25 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { StackNavigationProp } from '@react-navigation/stack';
-import { signInWithEmail, signInWithGoogle } from '../src/services/auth';
-import { useAuthRequest } from 'expo-auth-session/providers/google';
-import { GOOGLE_CONFIG } from '../src/constants/googleAuth';
+import { registerWithEmail } from '../services/auth';
 
 type AuthStackParamList = {
-  Register: undefined;
   Login: undefined;
+  Register: undefined;
   Home: undefined;
 };
 
-type LoginScreenNavigationProp = StackNavigationProp<AuthStackParamList, 'Login'>;
+type RegisterScreenNavigationProp = StackNavigationProp<AuthStackParamList, 'Register'>;
 
 interface Props {
-  navigation: LoginScreenNavigationProp;
+  navigation: RegisterScreenNavigationProp;
 }
 
-const LoginScreen: React.FC<Props> = ({ navigation }) => {
+const RegisterScreen: React.FC<Props> = ({ navigation }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  
-  const [request, response, promptAsync] = useAuthRequest({
-    expoClientId: GOOGLE_CONFIG.expoClientId,
-    iosClientId: GOOGLE_CONFIG.iosClientId,
-    androidClientId: GOOGLE_CONFIG.androidClientId,
-    webClientId: GOOGLE_CONFIG.webClientId,
-  });
 
   const validateForm = (): boolean => {
     if (!email.trim()) {
@@ -50,52 +42,34 @@ const LoginScreen: React.FC<Props> = ({ navigation }) => {
       return false;
     }
     if (!password.trim()) {
-      Alert.alert('Error', 'Please enter your password');
+      Alert.alert('Error', 'Please enter a password');
+      return false;
+    }
+    if (password.length < 6) {
+      Alert.alert('Error', 'Password must be at least 6 characters');
+      return false;
+    }
+    if (password !== confirmPassword) {
+      Alert.alert('Error', 'Passwords do not match');
       return false;
     }
     return true;
   };
 
-  const handleLogin = async () => {
+  const handleRegister = async () => {
     if (!validateForm()) return;
 
     setIsLoading(true);
     try {
-      await signInWithEmail(email, password);
-      Alert.alert('Success', 'Logged in successfully!', [
+      await registerWithEmail(email, password);
+      Alert.alert('Success', 'Account created successfully!', [
         {
           text: 'OK',
           onPress: () => navigation.navigate('Home'),
         },
       ]);
     } catch (error: any) {
-      Alert.alert('Error', error.message || 'Failed to log in');
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleGoogleLogin = async () => {
-    setIsLoading(true);
-    try {
-      const result = await promptAsync();
-      if (result?.type === 'success') {
-        const { id_token, access_token } = result.params;
-        if (id_token) {
-          await signInWithGoogle({ 
-            idToken: id_token, 
-            accessToken: access_token 
-          });
-          Alert.alert('Success', 'Google sign-in successful!', [
-            {
-              text: 'OK',
-              onPress: () => navigation.navigate('Home'),
-            },
-          ]);
-        }
-      }
-    } catch (error: any) {
-      Alert.alert('Error', error.message || 'Failed to sign in with Google');
+      Alert.alert('Error', error.message || 'Failed to create account');
     } finally {
       setIsLoading(false);
     }
@@ -108,8 +82,8 @@ const LoginScreen: React.FC<Props> = ({ navigation }) => {
     >
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
         <View style={styles.header}>
-          <Text style={styles.title}>Welcome Back</Text>
-          <Text style={styles.subtitle}>Sign in to continue your health journey</Text>
+          <Text style={styles.title}>Create Account</Text>
+          <Text style={styles.subtitle}>Join us and start your health journey</Text>
         </View>
 
         <View style={styles.form}>
@@ -138,40 +112,34 @@ const LoginScreen: React.FC<Props> = ({ navigation }) => {
             />
           </View>
 
-          <TouchableOpacity style={styles.forgotPassword}>
-            <Text style={styles.forgotPasswordText}>Forgot Password?</Text>
-          </TouchableOpacity>
+          <View style={styles.inputContainer}>
+            <Text style={styles.label}>Confirm Password</Text>
+            <TextInput
+              style={styles.input}
+              placeholder="Confirm your password"
+              value={confirmPassword}
+              onChangeText={setConfirmPassword}
+              secureTextEntry
+              placeholderTextColor="#9CA3AF"
+            />
+          </View>
 
           <TouchableOpacity 
             style={[styles.primaryButton, isLoading && styles.disabledButton]} 
-            onPress={handleLogin}
+            onPress={handleRegister}
             disabled={isLoading}
           >
             {isLoading ? (
               <ActivityIndicator color="#FFFFFF" />
             ) : (
-              <Text style={styles.primaryButtonText}>Sign In</Text>
+              <Text style={styles.primaryButtonText}>Create Account</Text>
             )}
           </TouchableOpacity>
 
-          <View style={styles.divider}>
-            <View style={styles.dividerLine} />
-            <Text style={styles.dividerText}>Or sign in with</Text>
-            <View style={styles.dividerLine} />
-          </View>
-
-          <TouchableOpacity 
-            style={[styles.googleButton, isLoading && styles.disabledButton]} 
-            onPress={handleGoogleLogin}
-            disabled={isLoading || !request}
-          >
-            <Text style={styles.googleButtonText}>🔍 Continue with Google</Text>
-          </TouchableOpacity>
-
           <View style={styles.footer}>
-            <Text style={styles.footerText}>Don't have an account? </Text>
-            <TouchableOpacity onPress={() => navigation.navigate('Register')}>
-              <Text style={styles.linkText}>Sign Up</Text>
+            <Text style={styles.footerText}>Already have an account? </Text>
+            <TouchableOpacity onPress={() => navigation.navigate('Login')}>
+              <Text style={styles.linkText}>Sign In</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -237,21 +205,12 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#1F2937',
   },
-  forgotPassword: {
-    alignSelf: 'flex-end',
-    marginBottom: 24,
-  },
-  forgotPasswordText: {
-    fontSize: 14,
-    color: '#3B82F6',
-    fontWeight: '500',
-  },
   primaryButton: {
     backgroundColor: '#3B82F6',
     borderRadius: 12,
     paddingVertical: 16,
     alignItems: 'center',
-    marginBottom: 8,
+    marginBottom: 24,
     shadowColor: '#3B82F6',
     shadowOffset: {
       width: 0,
@@ -265,41 +224,6 @@ const styles = StyleSheet.create({
     opacity: 0.6,
   },
   primaryButtonText: {
-    color: '#FFFFFF',
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  divider: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginVertical: 24,
-  },
-  dividerLine: {
-    flex: 1,
-    height: 1,
-    backgroundColor: '#E5E7EB',
-  },
-  dividerText: {
-    marginHorizontal: 16,
-    fontSize: 14,
-    color: '#6B7280',
-  },
-  googleButton: {
-    backgroundColor: '#4285F4',
-    borderRadius: 12,
-    paddingVertical: 16,
-    alignItems: 'center',
-    marginBottom: 24,
-    shadowColor: '#4285F4',
-    shadowOffset: {
-      width: 0,
-      height: 4,
-    },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 6,
-  },
-  googleButtonText: {
     color: '#FFFFFF',
     fontSize: 16,
     fontWeight: '600',
@@ -320,4 +244,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default LoginScreen;
+export default RegisterScreen;

@@ -1,21 +1,16 @@
 import React, { useEffect, useState } from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
-import * as SecureStore from 'expo-secure-store';
-import LoginScreen from '../screens/LoginScreen';
-import HomeScreen from '../screens/HomeScreen';
+import { getStoredUser } from '../services/auth';
+import LoginScreen from '../../screens/LoginScreen';
+import RegisterScreen from '../../src/screens/RegisterScreen';
+import HomeScreen from '../../screens/HomeScreen';
 
 export type RootStackParamList = {
   Login: undefined;
+  Register: undefined;
   Home: undefined;
 };
-
-interface User {
-  method: 'email' | 'google';
-  email?: string;
-  accessToken?: string;
-  idToken?: string;
-}
 
 const Stack = createStackNavigator<RootStackParamList>();
 
@@ -29,12 +24,9 @@ const AppNavigator: React.FC = () => {
 
   const checkAuthState = async () => {
     try {
-      const userString = await SecureStore.getItemAsync('user');
-      if (userString) {
-        const user: User = JSON.parse(userString);
-        if (user && (user.method === 'email' || user.method === 'google')) {
-          setInitialRoute('Home');
-        }
+      const user = await getStoredUser();
+      if (user) {
+        setInitialRoute('Home');
       }
     } catch (error) {
       console.error('Error checking auth state:', error);
@@ -69,6 +61,14 @@ const AppNavigator: React.FC = () => {
           options={{
             title: 'Welcome',
             headerShown: false, // Hide header for login screen for cleaner look
+          }}
+        />
+        <Stack.Screen 
+          name="Register" 
+          component={RegisterScreen}
+          options={{
+            title: 'Create Account',
+            headerShown: false, // Hide header for register screen for cleaner look
           }}
         />
         <Stack.Screen 

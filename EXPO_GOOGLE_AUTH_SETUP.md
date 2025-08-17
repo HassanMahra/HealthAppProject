@@ -173,3 +173,4 @@ const handleGoogleLogin = async () => {
 - [ ] User data properly stored
 
 The Google authentication is now fully compatible with Expo's managed workflow and ready for development and testing!
+

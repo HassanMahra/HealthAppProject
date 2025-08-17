@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -6,21 +6,49 @@ import {
   StyleSheet,
   SafeAreaView,
   Alert,
+  ActivityIndicator,
 } from 'react-native';
-import { useAuth } from '../contexts/AuthContext';
-import { useGoogleAuth, signInWithGoogle, signOutFromSocial } from '../utils/socialAuth';
+import { StackNavigationProp } from '@react-navigation/stack';
+import { getStoredUser, signOutUser, User } from '../src/services/auth';
+import { getUserProfile, UserProfile } from '../src/services/userProfile';
 
-const HomeScreen: React.FC = () => {
-  const { user, logout, login } = useAuth();
-  const { request, response, promptAsync } = useGoogleAuth();
+type RootStackParamList = {
+  Login: undefined;
+  Register: undefined;
+  Home: undefined;
+};
 
-  const handleGoogleLogin = async () => {
+type HomeScreenNavigationProp = StackNavigationProp<RootStackParamList, 'Home'>;
+
+interface Props {
+  navigation: HomeScreenNavigationProp;
+}
+
+const HomeScreen: React.FC<Props> = ({ navigation }) => {
+  const [user, setUser] = useState<User | null>(null);
+  const [profile, setProfile] = useState<UserProfile | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    loadUserData();
+  }, []);
+
+  const loadUserData = async () => {
     try {
-      const result = await signInWithGoogle(promptAsync);
-      login(result.user);
-      Alert.alert('Success', 'Google login successful! Check console for access token.');
-    } catch (error: any) {
-      Alert.alert('Error', error.message || 'Google login failed');
+      const storedUser = await getStoredUser();
+      if (storedUser) {
+        setUser(storedUser);
+        const userProfile = await getUserProfile(storedUser.uid);
+        setProfile(userProfile);
+      } else {
+        // No stored user, redirect to login
+        navigation.replace('Login');
+      }
+    } catch (error) {
+      console.error('Failed to load user data:', error);
+      navigation.replace('Login');
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -38,8 +66,8 @@ const HomeScreen: React.FC = () => {
           style: 'destructive',
           onPress: async () => {
             try {
-              await signOutFromSocial();
-              await logout();
+              await signOutUser();
+              navigation.replace('Login');
             } catch (error: any) {
               Alert.alert('Error', error.message || 'Failed to logout');
             }
@@ -49,44 +77,59 @@ const HomeScreen: React.FC = () => {
     );
   };
 
+  if (isLoading) {
+    return (
+      <SafeAreaView style={[styles.container, styles.centered]}>
+        <ActivityIndicator size="large" color="#3B82F6" />
+        <Text style={styles.loadingText}>Loading...</Text>
+      </SafeAreaView>
+    );
+  }
+
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.content}>
         <View style={styles.welcomeSection}>
           <Text style={styles.welcomeText}>Welcome,</Text>
-          <Text style={styles.usernameText}>{user?.username || 'User'}!</Text>
+          <Text style={styles.usernameText}>
+            {profile?.displayName || user?.email?.split('@')[0] || 'User'}!
+          </Text>
           <Text style={styles.subtitleText}>
             Ready to continue your health journey?
           </Text>
         </View>
 
         <View style={styles.card}>
-          <Text style={styles.cardTitle}>🎉 Account Created Successfully!</Text>
+          <Text style={styles.cardTitle}>🎉 Welcome to Health App!</Text>
           <Text style={styles.cardDescription}>
-            Your account has been set up and you're now logged in. You can explore all the features of the Health App.
+            Your account is set up and ready. You can now explore all the features of the Health App.
           </Text>
           
           <View style={styles.userInfo}>
             <View style={styles.infoRow}>
-              <Text style={styles.infoLabel}>Username:</Text>
-              <Text style={styles.infoValue}>{user?.username}</Text>
+              <Text style={styles.infoLabel}>Name:</Text>
+              <Text style={styles.infoValue}>
+                {profile?.displayName || 'Not set'}
+              </Text>
             </View>
             <View style={styles.infoRow}>
               <Text style={styles.infoLabel}>Email:</Text>
-              <Text style={styles.infoValue}>{user?.email}</Text>
+              <Text style={styles.infoValue}>{user?.email || 'Not available'}</Text>
+            </View>
+            <View style={styles.infoRow}>
+              <Text style={styles.infoLabel}>Provider:</Text>
+              <Text style={styles.infoValue}>
+                {user?.provider === 'google' ? 'Google' : 'Email'}
+              </Text>
             </View>
             <View style={styles.infoRow}>
               <Text style={styles.infoLabel}>User ID:</Text>
-              <Text style={styles.infoValue}>{user?.id}</Text>
+              <Text style={styles.infoValue}>{user?.uid.slice(0, 8)}...</Text>
             </View>
           </View>
         </View>
 
         <View style={styles.actionButtons}>
-          <TouchableOpacity style={styles.googleButton} onPress={handleGoogleLogin}>
-            <Text style={styles.googleButtonText}>🔍 Test Google Login</Text>
-          </TouchableOpacity>
-          
           <TouchableOpacity style={styles.primaryButton}>
             <Text style={styles.primaryButtonText}>Explore App Features</Text>
           </TouchableOpacity>
@@ -108,6 +151,15 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#F8FAFC',
+  },
+  centered: {
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  loadingText: {
+    marginTop: 16,
+    fontSize: 16,
+    color: '#6B7280',
   },
   content: {
     flex: 1,

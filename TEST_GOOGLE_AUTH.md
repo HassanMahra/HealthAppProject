@@ -65,3 +65,4 @@ Once you set up Google OAuth credentials:
 5. **Clean Error Handling**: Proper error messages for auth failures
 
 The migration from native Google Sign-In to Expo's managed workflow is complete! 🎉
+

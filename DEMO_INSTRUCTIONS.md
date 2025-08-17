@@ -125,3 +125,4 @@ If you encounter issues:
 - **Expo Web**: Basic functionality, limited social auth
 
 The authentication system is ready to use and can be easily customized for your specific needs!
+
