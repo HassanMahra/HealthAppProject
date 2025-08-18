@@ -13,6 +13,7 @@ import {
 } from 'react-native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import * as Google from 'expo-auth-session/providers/google';
+import { makeRedirectUri } from 'expo-auth-session';
 import * as WebBrowser from 'expo-web-browser';
 import * as SecureStore from 'expo-secure-store';
 import { RootStackParamList } from '../navigation/AppNavigator';
@@ -40,14 +41,15 @@ const LoginScreen: React.FC<Props> = ({ navigation }) => {
   const [error, setError] = useState('');
 
   // Google Auth Configuration
-  // TODO: Replace these placeholders with your actual Google OAuth client IDs
-  // Get them from: https://console.cloud.google.com/
-  const [request, response, promptAsync] = Google.useAuthRequest({
-    expoClientId: 'YOUR_EXPO_CLIENT_ID.apps.googleusercontent.com',
-    androidClientId: 'YOUR_ANDROID_CLIENT_ID.apps.googleusercontent.com',
-    iosClientId: 'YOUR_IOS_CLIENT_ID.apps.googleusercontent.com',
-    webClientId: 'YOUR_WEB_CLIENT_ID.apps.googleusercontent.com',
-  });
+  const googleRequestConfig = {
+    expoClientId: '120287694034-cj4majs3je7nh5m4ob0p4or9d1a4iudd.apps.googleusercontent.com',
+    androidClientId: '120287694034-oh6h9mqk2mkgaugjo4mfgmtor5ejdmt6.apps.googleusercontent.com',
+    iosClientId: '120287694034-h59f78m7u1gbvq5omj8b9hh7ptf6phmi.apps.googleusercontent.com',
+    webClientId: '120287694034-cj4majs3je7nh5m4ob0p4or9d1a4iudd.apps.googleusercontent.com',
+    redirectUri: makeRedirectUri({ useProxy: true }),
+  };
+  
+  const [request, response, promptAsync] = Google.useAuthRequest(googleRequestConfig);
 
   // Handle Google Auth Response
   React.useEffect(() => {
@@ -121,7 +123,7 @@ const LoginScreen: React.FC<Props> = ({ navigation }) => {
 
     try {
       // Trigger Google OAuth flow
-      await promptAsync();
+      await promptAsync({ useProxy: true });
     } catch (error) {
       console.error('Google login error:', error);
       setError('Google sign-in failed. Please try again.');

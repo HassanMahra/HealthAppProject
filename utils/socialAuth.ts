@@ -11,12 +11,17 @@ WebBrowser.maybeCompleteAuthSession();
 
 // Google Sign-In Hook
 export const useGoogleAuth = () => {
-  const [request, response, promptAsync] = Google.useAuthRequest({
-    androidClientId: GOOGLE_CONFIG.androidClientId,
-    iosClientId: GOOGLE_CONFIG.iosClientId,
+  const redirectUri = 'https://auth.expo.io/@hassanmahra/HealthAppProject';
+  
+  const googleRequestConfig = {
     webClientId: GOOGLE_CONFIG.webClientId,
+    iosClientId: GOOGLE_CONFIG.iosClientId,
+    androidClientId: GOOGLE_CONFIG.androidClientId,
     expoClientId: GOOGLE_CONFIG.expoClientId,
-  });
+    redirectUri: redirectUri,
+  };
+
+  const [request, response, promptAsync] = Google.useAuthRequest(googleRequestConfig);
 
   return { request, response, promptAsync };
 };
@@ -24,7 +29,7 @@ export const useGoogleAuth = () => {
 // Google Sign-In Function
 export const signInWithGoogle = async (promptAsync: () => Promise<AuthSession.AuthSessionResult>): Promise<{ user: User; accessToken: string }> => {
   try {
-    const result = await promptAsync();
+    const result = await promptAsync({ useProxy: true });
     
     if (result.type === 'success') {
       const { access_token } = result.params;

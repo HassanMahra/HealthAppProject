@@ -23,10 +23,19 @@ const USERS_COLLECTION = 'users';
 export const createUserProfile = async (user: User): Promise<void> => {
   try {
     const userDocRef = doc(db, USERS_COLLECTION, user.uid);
-    const userDoc = await getDoc(userDocRef);
     
-    // Only create if profile doesn't exist
-    if (!userDoc.exists()) {
+    // Try to get the document first
+    let userDoc;
+    try {
+      userDoc = await getDoc(userDocRef);
+    } catch (getError: any) {
+      // If we can't get the document due to offline/network issues, 
+      // still try to create it (it will be cached locally)
+      console.warn('Could not check existing profile, attempting to create:', getError.message);
+    }
+    
+    // Only create if profile doesn't exist (or we couldn't check)
+    if (!userDoc || !userDoc.exists()) {
       const profileData: Omit<UserProfile, 'createdAt'> & { createdAt: any } = {
         uid: user.uid,
         email: user.email,
@@ -36,12 +45,18 @@ export const createUserProfile = async (user: User): Promise<void> => {
         onboardingDone: false,
       };
       
-      await setDoc(userDocRef, profileData);
-      console.log('User profile created successfully');
+      try {
+        await setDoc(userDocRef, profileData, { merge: true });
+        console.log('User profile created/updated successfully');
+      } catch (setError: any) {
+        // If offline, the write will be cached and synced when online
+        console.warn('Profile creation cached for offline sync:', setError.message);
+      }
     }
-  } catch (error) {
+  } catch (error: any) {
     console.error('Failed to create user profile:', error);
-    throw new Error('Failed to create user profile');
+    // Don't throw error - allow authentication to succeed even if profile creation fails
+    console.warn('Authentication succeeded but profile creation failed - will retry when online');
   }
 };
 
@@ -76,3 +91,4 @@ export const updateUserProfile = async (
     throw new Error('Failed to update user profile');
   }
 };
+

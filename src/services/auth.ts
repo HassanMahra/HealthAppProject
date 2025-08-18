@@ -126,3 +126,4 @@ export const clearStoredUser = async (): Promise<void> => {
     console.error('Failed to clear stored user:', error);
   }
 };
+

@@ -113,3 +113,4 @@ src/
 4. Add additional user profile fields as needed
 5. Implement password reset functionality
 6. Add email verification if required
+
