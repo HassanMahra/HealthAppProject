@@ -14,7 +14,11 @@ import {
 import { StackNavigationProp } from '@react-navigation/stack';
 import { signInWithEmail, signInWithGoogle } from '../src/services/auth';
 import { useAuthRequest } from 'expo-auth-session/providers/google';
-import { GOOGLE_CONFIG } from '../src/constants/googleAuth';
+import { makeRedirectUri } from 'expo-auth-session';
+import * as WebBrowser from 'expo-web-browser';
+import { GOOGLE_CONFIG } from '../config/socialAuth.config';
+
+WebBrowser.maybeCompleteAuthSession();
 
 type AuthStackParamList = {
   Register: undefined;
@@ -33,12 +37,20 @@ const LoginScreen: React.FC<Props> = ({ navigation }) => {
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   
-  const [request, response, promptAsync] = useAuthRequest({
-    expoClientId: GOOGLE_CONFIG.expoClientId,
+  // Force the correct Expo proxy redirect URI
+  const redirectUri = 'https://auth.expo.io/@hassanmahra/HealthAppProject';
+  
+  console.log('Google OAuth Redirect URI:', redirectUri);
+  
+  const googleRequestConfig = {
+    webClientId: GOOGLE_CONFIG.webClientId,
     iosClientId: GOOGLE_CONFIG.iosClientId,
     androidClientId: GOOGLE_CONFIG.androidClientId,
-    webClientId: GOOGLE_CONFIG.webClientId,
-  });
+    expoClientId: GOOGLE_CONFIG.expoClientId,
+    redirectUri: redirectUri,
+  };
+
+  const [request, response, promptAsync] = useAuthRequest(googleRequestConfig);
 
   const validateForm = (): boolean => {
     if (!email.trim()) {
@@ -78,7 +90,9 @@ const LoginScreen: React.FC<Props> = ({ navigation }) => {
   const handleGoogleLogin = async () => {
     setIsLoading(true);
     try {
-      const result = await promptAsync();
+      console.log('Starting Google OAuth with config:', googleRequestConfig);
+      const result = await promptAsync({ useProxy: true });
+      console.log('Google OAuth result:', result);
       if (result?.type === 'success') {
         const { id_token, access_token } = result.params;
         if (id_token) {

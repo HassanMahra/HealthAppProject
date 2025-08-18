@@ -111,3 +111,4 @@ Update `src/constants/googleAuth.ts` with your Google OAuth client IDs if you wa
 The implementation follows Expo best practices and uses the latest Firebase v9+ modular SDK for optimal performance and tree-shaking.
 
 Ready to use! Just add your Firebase configuration and you're good to go! 🎉
+
